@@ -74,33 +74,36 @@
   
   $: activeDayTodos = days[activeTab].todos;
   </script>
-  
 
-<div class="container">
-  <h1>{days[activeTab].name} Todos</h1>
-
-  <div class="tabs">
+  <div class="container">
+    <h1>{days[activeTab].name} Todos</h1>
+    <div class="tabs">
       {#each days as day, i}
-          <button class:active={activeTab === i} on:click={() => activeTab = i}>
-              {day.symbol} {day.name}
-          </button>
+        <button 
+          class:active={activeTab === i} 
+          on:click={() => activeTab = i}
+          title={day.name}
+        >
+          <span class="symbol">{day.symbol}</span>
+          <span class="name">{day.name}</span>
+        </button>
       {/each}
-  </div>
-  <div class="todo-list">
-      <ul>
-          {#each $activeDayTodos as todo}
-              <li>
-                  {todo.content}
-                  <button on:click={() => deleteTodo(todo)}>Delete</button>
-              </li>
-          {/each}
-      </ul>
+    </div>
+    <div class="todo-list">
       <form on:submit|preventDefault={addTodo}>
-          <input
-              bind:value={newTodo}
-              placeholder="Add a new todo..."
-          />
-          <button type="submit">Add</button>
+        <input
+          bind:value={newTodo}
+          placeholder="Add a new todo..."
+        />
+        <button type="submit">Add</button>
       </form>
+      <ul>
+        {#each $activeDayTodos as todo}
+          <li>
+            {todo.content}
+            <button on:click={() => deleteTodo(todo)}>Delete</button>
+          </li>
+        {/each}
+      </ul>
+    </div>
   </div>
-</div>

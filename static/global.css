@@ -28,7 +28,6 @@
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
-
 body {
   font-family: 'Space Mono', sans-serif;
   background: linear-gradient(45deg, #0a0a2a, #2a0a3a, #3a0a4a, #4a0a5a);
@@ -39,20 +38,22 @@ body {
   padding: 0;
   min-height: 100vh;
   display: flex;
-  justify-content: center;
+  flex-direction: column;  
   align-items: center;
+  padding-top: 2rem;
 }
 
 .container {
   max-width: 800px;
+  width: 90%;
   padding: 2rem;
   background-color: rgba(20, 20, 40, 0.8);
   border-radius: 20px;
   box-shadow: 0 0 30px rgba(255, 58, 134, 0.3);
   backdrop-filter: blur(10px);
   animation: float 6s ease-in-out infinite;
+  margin-top: 0;
 }
-
 h1, h2 {
   text-align: center;
   color: var(--accent-color);
@@ -74,6 +75,14 @@ h1, h2 {
   transition: all 0.3s ease;
   border-radius: 10px;
   font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tabs button .symbol {
+  font-size: 1.2em;
+  margin-right: 0.5rem;
 }
 
 .tabs button:hover {
@@ -160,8 +169,12 @@ form button:hover {
 
 /* Responsive design */
 @media (max-width: 600px) {
+  body {
+    padding-top: 1rem;
+  }
+
   .container {
-    width: 90%;
+    width: 95%;
     padding: 1rem;
   }
 
@@ -169,7 +182,19 @@ form button:hover {
     flex-wrap: wrap;
   }
 
+  .tabs button .name {
+    display: none;
+  }
+
   .tabs button {
-    margin-bottom: 0.5rem;
+    padding: 0.5rem;
+  }
+
+  .tabs button .symbol {
+    margin-right: 0;
+  }
+
+  .tabs {
+    justify-content: space-around;
   }
 }

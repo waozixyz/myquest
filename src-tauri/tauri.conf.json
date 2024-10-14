@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2.0.0",
-  "productName": "mylife",
+  "productName": "myquest",
   "version": "0.1.0",
-  "identifier": "xyz.waozi.mylife",
+  "identifier": "xyz.waozi.myquest",
   "build": {
     "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "mylife",
+        "title": "myquest",
         "width": 800,
         "height": 600
         

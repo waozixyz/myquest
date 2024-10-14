@@ -1733,7 +1733,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "mylife"
+name = "myquest"
 version = "0.1.0"
 dependencies = [
  "rusqlite",
