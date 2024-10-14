@@ -17,8 +17,8 @@ myQuest is a simple todo application built with Tauri v2 and Svelte to help user
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) (version X.X.X or higher)
-- [Rust](https://www.rust-lang.org/) (version X.X.X or higher)
+- [Node.js](https://nodejs.org/)
+- [Rust](https://www.rust-lang.org/)
 
 ### Installation
 
@@ -32,7 +32,6 @@ git clone https://github.com/waozixyz/myquest.git
 ```
 cd myquest
 ```
-
 
 3. Install dependencies:
 ```
