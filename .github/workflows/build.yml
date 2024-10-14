@@ -63,7 +63,7 @@ jobs:
     - name: Install frontend dependencies
       run: pnpm install
     - name: Build Tauri Android App
-      run: pnpm tauri android build --release
+      run: pnpm tauri android build
     - name: Upload Android artifact
       uses: actions/upload-artifact@v4
       with:
