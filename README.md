@@ -1,7 +1,54 @@
-# Tauri + SvelteKit + TypeScript
+# myQuest
 
-This template should help get you started developing with Tauri, SvelteKit and TypeScript in Vite.
+myQuest is a simple todo application built with Tauri v2 and Svelte to help users reach their goals.
 
-## Recommended IDE Setup
+## Features
 
-[VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer).
+- Create and manage todo items
+- Organize tasks to achieve personal goals
+- Cross-platform desktop application (Windows, macOS, Linux)
+
+## Technologies Used
+
+- [Tauri v2](https://v2.tauri.app/)
+- [Svelte](https://svelte.dev/)
+
+## Getting Started
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) (version X.X.X or higher)
+- [Rust](https://www.rust-lang.org/) (version X.X.X or higher)
+
+### Installation
+
+1. Clone the repository:
+
+```
+git clone https://github.com/waozixyz/myquest.git
+```
+
+2. Navigate to the project directory:
+```
+cd myquest
+```
+
+
+3. Install dependencies:
+```
+pnpm install
+```
+
+4. Run the development server:
+```
+pnpm tauri dev
+```
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
+
