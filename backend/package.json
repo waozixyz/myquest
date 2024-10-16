@@ -1,0 +1,26 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "node -r dotenv/config dist/index.js",
+    "build": "tsc",
+    "dev": "ts-node-dev -r dotenv/config src/index.ts",
+    "typeorm": "typeorm-ts-node-commonjs"
+  },
+  "dependencies": {
+    "@fastify/cors": "^8.0.0",
+    "@fastify/jwt": "^7.0.0",
+    "dotenv": "^16.4.5",
+    "fastify": "^4.0.0",
+    "sqlite3": "^5.1.6",
+    "telegraf": "^4.16.3",
+    "typeorm": "^0.3.17"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.9.1",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.0.0"
+  }
+}

@@ -1,29 +1,31 @@
 <script lang="ts">
-    export let isLoggedIn: boolean;
-    export let username: string;
-    export let onLoginClick: () => void;
-    export let onLogoutClick: () => void;
-    export let onSettingsClick: () => void;
-  </script>
-  
-  <nav class="top-nav">
-    <div class="nav-logo">🚀 Cosmic Todos</div>
-    <div class="nav-actions">
-      {#if isLoggedIn}
-        <span class="username">Welcome, {username}</span>
-        <button on:click={onLogoutClick} class="nav-button logout-button">
-          <i class="fas fa-sign-out-alt"></i> Logout
-        </button>
-      {:else}
-        <button on:click={onLoginClick} class="nav-button login-button">
-          <i class="fab fa-telegram"></i> Login with Telegram
-        </button>
-      {/if}
-      <button on:click={onSettingsClick} class="nav-button settings-button">
-        <i class="fas fa-cog"></i> Settings
+  import TelegramLogin from './TelegramLogin.svelte';
+
+  export let isLoggedIn: boolean;
+  export let username: string;
+  export let onSyncTodos: () => void;
+  export let onLogoutClick: () => void;
+  export let onSettingsClick: () => void;
+  export let onTelegramAuth: (user: any) => void;
+</script>
+
+<nav class="top-nav">
+  <div class="nav-logo">🚀 Cosmic Todos</div>
+  <div class="nav-actions">
+    {#if isLoggedIn}
+      <button on:click={onSyncTodos} class="nav-button sync-button">Sync Todos</button>
+      <span class="username">Welcome, {username}</span>
+      <button on:click={onLogoutClick} class="nav-button logout-button">
+        <i class="fas fa-sign-out-alt"></i> Logout
       </button>
-    </div>
-  </nav>
+    {:else}
+      <TelegramLogin botName="w_myquest_bot" onAuth={onTelegramAuth} />
+    {/if}
+    <button on:click={onSettingsClick} class="nav-button settings-button">
+      <i class="fas fa-cog"></i> Settings
+    </button>
+  </div>
+</nav>
   
 <style>
 
@@ -105,4 +107,15 @@
         font-size: 0.9rem;
     }
 }
+
+
+.sync-button {
+    background-color: var(--secondary-color);
+  }
+  
+  /* You might want to add some styles for the TelegramLogin button */
+  :global(.telegram-login-button) {
+    border-radius: 25px;
+    overflow: hidden;
+  }
 </style>

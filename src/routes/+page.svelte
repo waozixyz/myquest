@@ -17,6 +17,7 @@
     symbol: string;
     todos: Writable<Todo[]>;
   }
+
   let settingsModal = false;
   let activeTab = new Date().getDay();
   const days: Day[] = [
@@ -31,9 +32,13 @@
 
   let newTodo = '';
   let storage: Awaited<ReturnType<typeof getStorage>>;
+  let isLoggedIn = false;
+  let username = '';
   
   async function initStorage() {
     storage = await getStorage();
+    isLoggedIn = storage.isUserLoggedIn();
+    username = storage.getUsername();
   }
   
   async function exportData() {
@@ -48,6 +53,19 @@
     URL.revokeObjectURL(url);
   }
 
+  async function syncTodos() {
+    if (isLoggedIn && storage) {
+      try {
+        await storage.sync();
+        await loadTodos(days[activeTab].name);
+        showNotification('Todos synced successfully!', 'success');
+      } catch (error) {
+        console.error('Sync failed:', error);
+        showNotification('Sync failed. Please try again.', 'error');
+      }
+    }
+  }
+
   async function importData(event: Event) {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
@@ -58,7 +76,6 @@
           const data = e.target?.result as string;
           if (!storage) await initStorage();
           await storage.importData(data);
-          // Reload todos for the current day
           await loadTodos(days[activeTab].name);
           showNotification('Import successful!', 'success');
         } catch (error) {
@@ -115,26 +132,31 @@
   function openSettings() {
     settingsModal = true;
   }
+
   function closeSettings() {
     settingsModal = false;
   }
 
-  let isLoggedIn = false;
-  let username = '';
-
-  async function loginWithTelegram() {
-    // This is a placeholder for the actual Telegram login logic
-    console.log('Attempting to log in with Telegram...');
-    // Simulating a successful login for demonstration
-    isLoggedIn = true;
-    username = 'CosmicUser';
-    // In a real implementation, you'd verify the login on your server
-  }
-
-  function logout() {
+  async function logout() {
+    if (!storage) await initStorage();
+    await storage.logout();
     isLoggedIn = false;
     username = '';
-    // Add any additional logout logic here
+    showNotification('Logged out successfully!', 'success');
+    await loadTodos(days[activeTab].name);
+  }
+
+  async function handleTelegramAuth(user: any) {
+    if (!storage) await initStorage();
+    const success = await storage.loginWithTelegram(user);
+    if (success) {
+      isLoggedIn = true;
+      username = user.first_name;
+      await syncTodos();
+      showNotification('Logged in successfully!', 'success');
+    } else {
+      showNotification('Login failed. Please try again.', 'error');
+    }
   }
 
   $: {
@@ -142,14 +164,17 @@
   }
   
   $: activeDayTodos = days[activeTab].todos;
+
+  initStorage();
 </script>
 
 <TopNav 
   {isLoggedIn}
   {username}
-  onLoginClick={loginWithTelegram}
+  onSyncTodos={syncTodos}
   onLogoutClick={logout}
   onSettingsClick={openSettings}
+  onTelegramAuth={handleTelegramAuth}
 />
 
 <div class="container">
@@ -196,6 +221,7 @@
   onExport={exportData}
   onImport={importData}
 />
+
 
 <style>
 

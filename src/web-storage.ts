@@ -1,8 +1,28 @@
-import type { StorageInterface, Todo } from './storage-interface';
+import type { StorageInterface, Todo, TelegramUser } from './storage-interface';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
 export class WebStorage implements StorageInterface {
+  private isLoggedIn: boolean = false;
+  private authToken: string = '';
+  private username: string = '';
+
+  constructor() {
+    this.loadAuthState();
+  }
+
   private getStorageKey(day: string): string {
     return `todos_${day}`;
+  }
+
+  private loadAuthState(): void {
+    const storedToken = localStorage.getItem('authToken');
+    const storedUsername = localStorage.getItem('username');
+    if (storedToken && storedUsername) {
+      this.authToken = storedToken;
+      this.username = storedUsername;
+      this.isLoggedIn = true;
+    }
   }
 
   async getTodos(day: string): Promise<Todo[]> {
@@ -43,6 +63,93 @@ export class WebStorage implements StorageInterface {
     const importedData: Record<string, Todo[]> = JSON.parse(data);
     for (const [day, todos] of Object.entries(importedData)) {
       localStorage.setItem(this.getStorageKey(day), JSON.stringify(todos));
+    }
+  }
+
+  async loginWithTelegram(user: TelegramUser): Promise<boolean> {
+    try {
+      const response = await fetch(`${API_URL}/telegram-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(user)
+      });
+
+      if (!response.ok) {
+        throw new Error('Login failed');
+      }
+
+      const data = await response.json();
+      this.isLoggedIn = true;
+      this.authToken = data.token;
+      this.username = user.first_name;
+      localStorage.setItem('authToken', this.authToken);
+      localStorage.setItem('username', this.username);
+      return true;
+    } catch (error) {
+      console.error('Telegram login failed:', error);
+      return false;
+    }
+  }
+
+  logout(): void {
+    this.isLoggedIn = false;
+    this.authToken = '';
+    this.username = '';
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('username');
+  }
+
+  async sync(): Promise<void> {
+    if (!this.isLoggedIn || !this.authToken) {
+      throw new Error('User is not logged in');
+    }
+
+    try {
+      const allTodos = await this.getAllTodos();
+      const response = await fetch(`${API_URL}/sync`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.authToken}`
+        },
+        body: JSON.stringify(allTodos)
+      });
+
+      if (!response.ok) {
+        throw new Error('Sync failed');
+      }
+
+      const updatedTodos: Todo[] = await response.json();
+      await this.updateLocalStorage(updatedTodos);
+    } catch (error) {
+      console.error('Sync failed:', error);
+      throw error;
+    }
+  }
+
+  isUserLoggedIn(): boolean {
+    return this.isLoggedIn;
+  }
+
+  getUsername(): string {
+    return this.username;
+  }
+
+  private async getAllTodos(): Promise<Todo[]> {
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    let allTodos: Todo[] = [];
+    for (const day of days) {
+      const todos = await this.getTodos(day);
+      allTodos = allTodos.concat(todos);
+    }
+    return allTodos;
+  }
+
+  private async updateLocalStorage(todos: Todo[]): Promise<void> {
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    for (const day of days) {
+      const dayTodos = todos.filter(todo => todo.day === day);
+      localStorage.setItem(this.getStorageKey(day), JSON.stringify(dayTodos));
     }
   }
 }
