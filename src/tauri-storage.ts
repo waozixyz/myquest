@@ -1,4 +1,3 @@
-// tauri-storage.ts
 import { invoke } from "@tauri-apps/api/core";
 import type { StorageInterface, Todo } from './storage-interface';
 
@@ -13,5 +12,13 @@ export class TauriStorage implements StorageInterface {
 
   async deleteTodo(id: number): Promise<void> {
     await invoke('delete_todo', { id });
+  }
+
+  async exportData(): Promise<string> {
+    return await invoke('export_data');
+  }
+
+  async importData(data: string): Promise<void> {
+    await invoke('import_data', { data });
   }
 }

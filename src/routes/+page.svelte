@@ -2,14 +2,23 @@
   import { writable, type Writable } from 'svelte/store';
   import { getStorage } from '../storage-factory';
   import type { Todo } from '../storage-interface';
+  import TopNav from '../components/TopNav.svelte';
+  import SettingsModal from '../components/SettingsModal.svelte';
   
+  const notification = writable({ message: '', type: '' });
+
+  function showNotification(message: string, type: 'success' | 'error') {
+    notification.set({ message, type });
+    setTimeout(() => notification.set({ message: '', type: '' }), 3000);
+  }
+
   interface Day {
     name: string;
     symbol: string;
     todos: Writable<Todo[]>;
   }
-  
-  let activeTab = 0;
+  let settingsModal = false;
+  let activeTab = new Date().getDay();
   const days: Day[] = [
     { name: 'Monday', symbol: '🌙', todos: writable([]) },
     { name: 'Tuesday', symbol: '♂', todos: writable([]) },
@@ -19,7 +28,7 @@
     { name: 'Saturday', symbol: '♄', todos: writable([]) },
     { name: 'Sunday', symbol: '☉', todos: writable([]) },
   ];
-  
+
   let newTodo = '';
   let storage: Awaited<ReturnType<typeof getStorage>>;
   
@@ -27,6 +36,41 @@
     storage = await getStorage();
   }
   
+  async function exportData() {
+    if (!storage) await initStorage();
+    const data = await storage.exportData();
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'todos_export.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function importData(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const data = e.target?.result as string;
+          if (!storage) await initStorage();
+          await storage.importData(data);
+          // Reload todos for the current day
+          await loadTodos(days[activeTab].name);
+          showNotification('Import successful!', 'success');
+        } catch (error) {
+          console.error('Error importing data:', error);
+          showNotification('Import failed. Please check your file and try again.', 'error');
+        }
+      };
+      reader.readAsText(file);
+    }
+    closeSettings();
+  }
+
   async function loadTodos(day: string) {
     try {
       if (!storage) await initStorage();
@@ -68,42 +112,176 @@
     }
   }
   
+  function openSettings() {
+    settingsModal = true;
+  }
+  function closeSettings() {
+    settingsModal = false;
+  }
+
+  let isLoggedIn = false;
+  let username = '';
+
+  async function loginWithTelegram() {
+    // This is a placeholder for the actual Telegram login logic
+    console.log('Attempting to log in with Telegram...');
+    // Simulating a successful login for demonstration
+    isLoggedIn = true;
+    username = 'CosmicUser';
+    // In a real implementation, you'd verify the login on your server
+  }
+
+  function logout() {
+    isLoggedIn = false;
+    username = '';
+    // Add any additional logout logic here
+  }
+
   $: {
     loadTodos(days[activeTab].name);
   }
   
   $: activeDayTodos = days[activeTab].todos;
-  </script>
+</script>
 
-  <div class="container">
-    <h1>{days[activeTab].name} Todos</h1>
-    <div class="tabs">
-      {#each days as day, i}
-        <button 
-          class:active={activeTab === i} 
-          on:click={() => activeTab = i}
-          title={day.name}
-        >
-          <span class="symbol">{day.symbol}</span>
-          <span class="name">{day.name}</span>
-        </button>
-      {/each}
-    </div>
-    <div class="todo-list">
-      <form on:submit|preventDefault={addTodo}>
-        <input
-          bind:value={newTodo}
-          placeholder="Add a new todo..."
-        />
-        <button type="submit">Add</button>
-      </form>
-      <ul>
-        {#each $activeDayTodos as todo}
-          <li>
-            {todo.content}
-            <button on:click={() => deleteTodo(todo)}>Delete</button>
-          </li>
-        {/each}
-      </ul>
-    </div>
+<TopNav 
+  {isLoggedIn}
+  {username}
+  onLoginClick={loginWithTelegram}
+  onLogoutClick={logout}
+  onSettingsClick={openSettings}
+/>
+
+<div class="container">
+  <h1>{days[activeTab].name}</h1>
+  <div class="tabs">
+    {#each days as day, i}
+      <button 
+        class:active={activeTab === i} 
+        on:click={() => activeTab = i}
+        title={day.name}
+      >
+        <span class="symbol">{day.symbol}</span>
+        <span class="name">{day.name}</span>
+      </button>
+    {/each}
   </div>
+  <div class="todo-list">
+    <form on:submit|preventDefault={addTodo}>
+      <input
+        bind:value={newTodo}
+        placeholder="Add a new todo..."
+      />
+      <button type="submit">Add</button>
+    </form>
+    <ul>
+      {#each $activeDayTodos as todo}
+        <li>
+          {todo.content}
+          <button on:click={() => deleteTodo(todo)}>Delete</button>
+        </li>
+      {/each}
+    </ul>
+  </div>
+  {#if $notification.message}
+    <div class="notification {$notification.type}">
+      {$notification.message}
+    </div>
+  {/if}
+</div>
+
+<SettingsModal
+  isOpen={settingsModal}
+  onClose={closeSettings}
+  onExport={exportData}
+  onImport={importData}
+/>
+
+<style>
+
+/* Tabs */
+.tabs {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+}
+
+.tabs button {
+  background-color: var(--secondary-color);
+  color: var(--text-color);
+  border: none;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 10px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tabs button .symbol {
+  font-size: 1.2em;
+  margin-right: 0.5rem;
+}
+
+.tabs button:hover {
+  background-color: var(--hover-color);
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(255, 58, 134, 0.3);
+}
+
+.tabs button.active {
+  background-color: var(--accent-color);
+  box-shadow: 0 0 20px rgba(255, 58, 134, 0.5);
+}
+
+/* Todo List */
+.todo-list {
+  background-color: rgba(30, 30, 60, 0.8);
+  padding: 1rem;
+  border-radius: 15px;
+}
+
+ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--secondary-color);
+  animation: fadeIn 0.5s ease;
+}
+
+
+.tabs button .symbol {
+  font-size: 1.2em;
+  margin-right: 0.5rem;
+}
+
+
+/* Responsive Design */
+@media (max-width: 600px) {
+  .tabs {
+    flex-wrap: wrap;
+    justify-content: space-around;
+  }
+
+  .tabs button .name {
+    display: none;
+  }
+
+  .tabs button {
+    padding: 0.5rem;
+  }
+
+  .tabs button .symbol {
+    margin-right: 0;
+  }
+
+}
+</style>

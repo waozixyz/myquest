@@ -1,3 +1,4 @@
+/* Root Variables */
 :root {
   --bg-color: #0a0a2a;
   --text-color: #e0e0ff;
@@ -6,6 +7,7 @@
   --hover-color: #5a5a8a;
 }
 
+/* Animations */
 @keyframes nebula-flow {
   0% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
@@ -28,6 +30,13 @@
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+@keyframes modalFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+/* Global Styles */
 body {
   font-family: 'Space Mono', sans-serif;
   background: linear-gradient(45deg, #0a0a2a, #2a0a3a, #3a0a4a, #4a0a5a);
@@ -43,6 +52,14 @@ body {
   padding-top: 2rem;
 }
 
+/* Typography */
+h1, h2 {
+  text-align: center;
+  color: var(--accent-color);
+  text-shadow: 0 0 10px rgba(255, 58, 134, 0.5);
+}
+
+/* Layout Components */
 .container {
   max-width: 800px;
   width: 90%;
@@ -51,22 +68,11 @@ body {
   border-radius: 20px;
   box-shadow: 0 0 30px rgba(255, 58, 134, 0.3);
   backdrop-filter: blur(10px);
-  animation: float 6s ease-in-out infinite;
   margin-top: 0;
 }
-h1, h2 {
-  text-align: center;
-  color: var(--accent-color);
-  text-shadow: 0 0 10px rgba(255, 58, 134, 0.5);
-}
 
-.tabs {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 2rem;
-}
 
-.tabs button {
+button {
   background-color: var(--secondary-color);
   color: var(--text-color);
   border: none;
@@ -80,57 +86,20 @@ h1, h2 {
   justify-content: center;
 }
 
-.tabs button .symbol {
-  font-size: 1.2em;
-  margin-right: 0.5rem;
-}
-
-.tabs button:hover {
+button:hover {
   background-color: var(--hover-color);
   transform: translateY(-3px);
   box-shadow: 0 5px 15px rgba(255, 58, 134, 0.3);
 }
 
-.tabs button.active {
+button.active {
   background-color: var(--accent-color);
   box-shadow: 0 0 20px rgba(255, 58, 134, 0.5);
 }
 
-.todo-list {
-  background-color: rgba(30, 30, 60, 0.8);
-  padding: 1rem;
-  border-radius: 15px;
-}
 
-ul {
-  list-style-type: none;
-  padding: 0;
-}
 
-li {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.5rem 0;
-  border-bottom: 1px solid var(--secondary-color);
-  animation: fadeIn 0.5s ease;
-}
-
-li button {
-  background-color: #ff3860;
-  color: white;
-  border: none;
-  padding: 0.25rem 0.5rem;
-  cursor: pointer;
-  border-radius: 5px;
-  transition: all 0.3s ease;
-}
-
-li button:hover {
-  background-color: #ff1a4b;
-  transform: scale(1.1);
-}
-
+/* Forms */
 form {
   display: flex;
   margin-top: 1rem;
@@ -167,7 +136,36 @@ form button:hover {
   transform: scale(1.05);
 }
 
-/* Responsive design */
+
+/* Notifications */
+.notification {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 20px;
+  border-radius: 5px;
+  color: white;
+  font-weight: bold;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.notification.success {
+  background-color: #48c774;
+}
+
+.notification.error {
+  background-color: #ff3860;
+}
+
+/* Footer */
+footer {
+  display: flex;
+  justify-content: center;
+}
+
+/* Responsive Design */
 @media (max-width: 600px) {
   body {
     padding-top: 1rem;
@@ -178,23 +176,4 @@ form button:hover {
     padding: 1rem;
   }
 
-  .tabs {
-    flex-wrap: wrap;
-  }
-
-  .tabs button .name {
-    display: none;
-  }
-
-  .tabs button {
-    padding: 0.5rem;
-  }
-
-  .tabs button .symbol {
-    margin-right: 0;
-  }
-
-  .tabs {
-    justify-content: space-around;
-  }
 }
