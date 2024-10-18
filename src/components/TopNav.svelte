@@ -10,7 +10,6 @@
 </script>
 
 <nav class="top-nav">
-  <div class="nav-logo">🚀 Cosmic Todos</div>
   <div class="nav-actions">
     {#if isLoggedIn}
       <button on:click={onSyncTodos} class="nav-button sync-button">Sync Todos</button>

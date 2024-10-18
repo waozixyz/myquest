@@ -20,6 +20,11 @@ async function startApiServer() {
     // Setup JWT
     setupJWT(fastify);
 
+    await fastify.register(cors, {
+      origin: ["http://localhost", "http://localhost:80"],
+      credentials: true
+    });
+    
     // Register routes
     fastify.register(authRoutes);
     fastify.register(todoRoutes);

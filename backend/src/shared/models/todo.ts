@@ -10,4 +10,7 @@ export class Todo {
 
   @Column()
   content!: string;
+
+  @Column()
+  userId!: string;
 }

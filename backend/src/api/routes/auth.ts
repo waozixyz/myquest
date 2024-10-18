@@ -2,6 +2,7 @@ import { FastifyInstance } from "fastify";
 import { User } from "../../shared/models/user";
 import { AppDataSource } from "../config/database";
 import { TelegramUser } from "../types/telegram"; // You'll need to create this type
+import crypto from 'crypto';
 
 export async function authRoutes(fastify: FastifyInstance) {
   const userRepository = AppDataSource.getRepository(User);
@@ -33,10 +34,21 @@ export async function authRoutes(fastify: FastifyInstance) {
   });
 }
 
-// Helper function to verify Telegram auth data (you need to implement this)
+
 function verifyTelegramAuthData(telegramUser: TelegramUser): boolean {
-  // Implement verification logic here
-  // You should verify the hash provided by Telegram
-  // Return true if valid, false otherwise
-  return true; // Placeholder
+  const secret = crypto.createHash('sha256')
+    .update(process.env.BOT_TOKEN || '')
+    .digest();
+
+  const checkString = Object.keys(telegramUser)
+    .filter(key => key !== 'hash')
+    .sort()
+    .map(key => `${key}=${telegramUser[key as keyof TelegramUser]}`)
+    .join('\n');
+
+  const hash = crypto.createHmac('sha256', secret)
+    .update(checkString)
+    .digest('hex');
+
+  return hash === telegramUser.hash;
 }

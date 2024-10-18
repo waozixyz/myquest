@@ -71,13 +71,14 @@ export class WebStorage implements StorageInterface {
       const response = await fetch(`${API_URL}/telegram-login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // Important for CORS with authentication
         body: JSON.stringify(user)
       });
-
+  
       if (!response.ok) {
         throw new Error('Login failed');
       }
-
+  
       const data = await response.json();
       this.isLoggedIn = true;
       this.authToken = data.token;

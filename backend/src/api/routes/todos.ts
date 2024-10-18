@@ -9,7 +9,7 @@ export async function todoRoutes(fastify: FastifyInstance) {
     onRequest: [fastify.authenticate],
     handler: async (request, reply) => {
       const { day } = request.params as { day: string };
-      const userId = request.user.userId;
+      const userId = (request.user as { userId: string }).userId;
       const todos = await todoRepository.find({ where: { day, userId } });
       return todos;
     },
@@ -18,9 +18,9 @@ export async function todoRoutes(fastify: FastifyInstance) {
   fastify.post("/todos", {
     onRequest: [fastify.authenticate],
     handler: async (request, reply) => {
-      const todoData = request.body as Todo;
-      todoData.userId = request.user.userId;
-      const todo = todoRepository.create(todoData);
+      const todoData = request.body as Omit<Todo, 'id'>;
+      const userId = (request.user as { userId: string }).userId;
+      const todo = todoRepository.create({ ...todoData, userId });
       await todoRepository.save(todo);
       return reply.code(201).send(todo);
     },
@@ -30,7 +30,7 @@ export async function todoRoutes(fastify: FastifyInstance) {
     onRequest: [fastify.authenticate],
     handler: async (request, reply) => {
       const { id } = request.params as { id: string };
-      const userId = request.user.userId;
+      const userId = (request.user as { userId: string }).userId;
       await todoRepository.delete({ id: parseInt(id), userId });
       return reply.code(204).send();
     },
@@ -39,17 +39,14 @@ export async function todoRoutes(fastify: FastifyInstance) {
   fastify.post("/sync", {
     onRequest: [fastify.authenticate],
     handler: async (request, reply) => {
-      const todos = request.body as Todo[];
-      const userId = request.user.userId;
-
+      const todos = request.body as Omit<Todo, 'id'>[];
+      const userId = (request.user as { userId: string }).userId;
       await AppDataSource.transaction(async (transactionalEntityManager) => {
         await transactionalEntityManager.delete(Todo, { userId });
         for (const todo of todos) {
-          todo.userId = userId;
-          await transactionalEntityManager.save(Todo, todo);
+          await transactionalEntityManager.save(Todo, { ...todo, userId });
         }
       });
-
       const updatedTodos = await todoRepository.find({ where: { userId } });
       return reply.code(200).send(updatedTodos);
     },
