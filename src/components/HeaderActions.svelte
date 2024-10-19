@@ -3,6 +3,8 @@
     import { isLoggedIn, logout } from "../stores/authStore";
     import logInIcon from "../assets/log-in.svg";
     import logOutIcon from "../assets/log-out.svg";
+    import infoIcon from "../assets/info-circle.svg";
+    import settingsIcon from "../assets/settings.svg";
 
     function openModal(type: "signIn" | "info" | "settings") {
         modalStore.open(type);
@@ -27,14 +29,14 @@
         </button>
     {/if}
     <button class="icon-button" on:click={() => openModal("info")} title="Info">
-        ℹ️
+        <img src={infoIcon} alt="Info" class="icon" />
     </button>
     <button
         class="icon-button"
         on:click={() => openModal("settings")}
         title="Settings"
     >
-        ⚙️
+        <img src={settingsIcon} alt="Settings" class="icon" />
     </button>
 </div>
 
