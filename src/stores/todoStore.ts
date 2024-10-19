@@ -72,8 +72,6 @@ function createTodoStore() {
       // Attempt to sync if user is logged in
       if (storage.isUserLoggedIn()) {
         await todoStore.sync();
-      } else {
-        console.log("User is not logged in. Imported data will not be synced.");
       }
     }
   };

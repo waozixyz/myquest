@@ -28,7 +28,10 @@ export class WebStorage implements StorageInterface {
   async getTodos(day: string): Promise<Todo[]> {
     const storageKey = this.getStorageKey(day);
     const todosJson = localStorage.getItem(storageKey);
-    return todosJson ? JSON.parse(todosJson) : [];
+    console.log(`Getting todos for ${day}. Raw data:`, todosJson);
+    const todos = todosJson ? JSON.parse(todosJson) : [];
+    console.log(`Parsed todos for ${day}:`, todos);
+    return todos;
   }
 
   async addTodo(todo: Todo): Promise<void> {
@@ -52,18 +55,27 @@ export class WebStorage implements StorageInterface {
 
   async exportData(): Promise<string> {
     const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    const exportData: Record<string, Todo[]> = {};
+    let allTodos: Todo[] = [];
     for (const day of days) {
-      exportData[day] = await this.getTodos(day);
+      const dayTodos = await this.getTodos(day);
+      allTodos = allTodos.concat(dayTodos);
+      console.log(allTodos)
+      console.log(day)
+
     }
-    return JSON.stringify(exportData);
+    return JSON.stringify(allTodos);
   }
 
   async importData(data: string): Promise<void> {
-    const importedData: Record<string, Todo[]> = JSON.parse(data);
-    for (const [day, todos] of Object.entries(importedData)) {
-      localStorage.setItem(this.getStorageKey(day), JSON.stringify(todos));
+    console.log('Importing data:', data);
+    const importedData: Todo[] = JSON.parse(data);
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    for (const day of days) {
+      const dayTodos = importedData.filter(todo => todo.day === day);
+      console.log(`Importing todos for ${day}:`, dayTodos);
+      localStorage.setItem(this.getStorageKey(day), JSON.stringify(dayTodos));
     }
+    console.log('Import completed. LocalStorage updated.');
   }
 
   async loginWithTelegram(user: TelegramUser): Promise<boolean> {
