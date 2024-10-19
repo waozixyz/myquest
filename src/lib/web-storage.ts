@@ -24,7 +24,9 @@ export class WebStorage implements StorageInterface {
       this.isLoggedIn = true;
     }
   }
-
+  async updateTodoOrder(day: string, todos: Todo[]): Promise<void> {
+    localStorage.setItem(this.getStorageKey(day), JSON.stringify(todos));
+  }
   async getTodos(day: string): Promise<Todo[]> {
     const storageKey = this.getStorageKey(day);
     const todosJson = localStorage.getItem(storageKey);

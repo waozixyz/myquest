@@ -74,4 +74,8 @@ export class TauriStorage implements StorageInterface {
     }
     await invoke('sync_todos');
   }
+
+  async updateTodoOrder(day: string, todos: Todo[]): Promise<void> {
+    await invoke('update_todo_order', { day, todos });
+  }
 }

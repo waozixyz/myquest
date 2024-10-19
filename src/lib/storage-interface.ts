@@ -6,12 +6,12 @@ export interface StorageInterface {
   exportData(): Promise<string>;
   importData(data: string): Promise<void>;
   sync(): Promise<void>;
-  loginWithTelegram(user: TelegramUser): Promise<boolean>;
-  logout(): void;
+  loginWithTelegram(botName: string): Promise<void>;
+  logout(): Promise<void>;
   isUserLoggedIn(): boolean;
   getUsername(): string;
+  updateTodoOrder(day: string, todos: Todo[]): Promise<void>;
 }
-
 
 export interface TelegramUser {
   id: number;

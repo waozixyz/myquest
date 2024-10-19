@@ -81,6 +81,21 @@ fn get_todos(state: tauri::State<AppState>, day: String) -> Result<Vec<Todo>, St
         .map_err(|e| e.to_string())?;
     Ok(todos)
 }
+#[tauri::command]
+fn update_todo_order(state: tauri::State<AppState>, day: String, todos: Vec<Todo>) -> Result<(), String> {
+    let conn = state.db.lock().unwrap();
+    conn.execute("DELETE FROM todos WHERE day = ?", [&day])
+        .map_err(|e| e.to_string())?;
+
+    for todo in todos {
+        conn.execute(
+            "INSERT INTO todos (day, content) VALUES (?, ?)",
+            (&day, &todo.content),
+        )
+        .map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
 
 #[tauri::command]
 fn delete_todo(state: tauri::State<AppState>, id: i64) -> Result<(), String> {
@@ -240,7 +255,8 @@ pub fn run() {
             sync_todos,
             logout,
             get_auth_state,
-            open_telegram_login
+            open_telegram_login,
+            update_todo_order
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

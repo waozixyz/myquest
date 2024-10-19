@@ -48,6 +48,11 @@ function createTodoStore() {
       await initStorage();
       return storage.exportData();
     },
+    reorderTodos: async (day: string, newOrder: Todo[]) => {
+      await initStorage();
+      update(state => ({ ...state, [day]: newOrder }));
+      await storage.updateTodoOrder(day, newOrder);
+    },
     importData: async (data: string) => {
       await initStorage();
       
