@@ -1,10 +1,12 @@
+use dotenv::dotenv;
+use reqwest::Client;
 use rusqlite::{Connection, Result};
 use serde::{Deserialize, Serialize};
+use std::env;
 use std::sync::{Arc, Mutex};
 use tauri::Manager;
-use reqwest::Client;
-use dotenv::dotenv;
-use std::env;
+use tauri_plugin_shell::ShellExt;
+use url::Url;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct Todo {
@@ -95,7 +97,7 @@ fn export_data(state: tauri::State<AppState>) -> Result<String, String> {
     let mut stmt = conn
         .prepare("SELECT id, day, content FROM todos")
         .map_err(|e| e.to_string())?;
-    
+
     let todos = stmt
         .query_map([], |row| {
             Ok(Todo {
@@ -116,7 +118,8 @@ fn import_data(state: tauri::State<AppState>, data: String) -> Result<(), String
     let conn = state.db.lock().unwrap();
     let todos: Vec<Todo> = serde_json::from_str(&data).map_err(|e| e.to_string())?;
 
-    conn.execute("DELETE FROM todos", []).map_err(|e| e.to_string())?;
+    conn.execute("DELETE FROM todos", [])
+        .map_err(|e| e.to_string())?;
 
     for todo in todos {
         conn.execute(
@@ -136,11 +139,14 @@ async fn sync_todos(state: tauri::State<'_, AppState>) -> Result<(), String> {
         get_all_todos(&conn).map_err(|e| e.to_string())?
     };
 
-    let server_url = env::var("VITE_API_URL").unwrap_or_else(|_| "http://localhost:8080".to_string());
+    let server_url =
+        env::var("VITE_API_URL").unwrap_or_else(|_| "http://localhost:8080".to_string());
     let sync_url = format!("{}/sync", server_url);
 
     // Send todos to server
-    let response = state.http_client.post(sync_url)
+    let response = state
+        .http_client
+        .post(sync_url)
         .json(&todos)
         .send()
         .await
@@ -155,12 +161,14 @@ async fn sync_todos(state: tauri::State<'_, AppState>) -> Result<(), String> {
     // Update local database with server todos
     {
         let conn = state.db.lock().unwrap();
-        conn.execute("DELETE FROM todos", []).map_err(|e| e.to_string())?;
+        conn.execute("DELETE FROM todos", [])
+            .map_err(|e| e.to_string())?;
         for todo in server_todos {
             conn.execute(
                 "INSERT INTO todos (id, day, content) VALUES (?, ?, ?)",
                 (&todo.id, &todo.day, &todo.content),
-            ).map_err(|e| e.to_string())?;
+            )
+            .map_err(|e| e.to_string())?;
         }
     }
 
@@ -168,21 +176,15 @@ async fn sync_todos(state: tauri::State<'_, AppState>) -> Result<(), String> {
 }
 
 #[tauri::command]
-async fn login_with_telegram(state: tauri::State<'_, AppState>, user: TelegramUser) -> Result<bool, String> {
-    let server_url = env::var("VITE_API_URL").unwrap_or_else(|_| "http://localhost:8080".to_string());
-    let login_url = format!("{}/telegram-login", server_url);
-
-    let response = state.http_client.post(login_url)
-        .json(&user)
-        .send()
-        .await
-        .map_err(|e| e.to_string())?;
-
-    if response.status().is_success() {
-        Ok(true)
-    } else {
-        Ok(false)
-    }
+async fn open_telegram_login(app_handle: tauri::AppHandle, bot_name: String) -> Result<(), String> {
+    let url = format!(
+        "https://oauth.telegram.org/auth?bot_id={}&origin=myquest://&embed=1&request_access=write&return_to=myquest://auth",
+        bot_name
+    );
+    app_handle
+        .shell()
+        .open(url, None)
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -193,21 +195,23 @@ fn logout() -> Result<(), String> {
 
 fn get_all_todos(conn: &Connection) -> Result<Vec<Todo>, rusqlite::Error> {
     let mut stmt = conn.prepare("SELECT id, day, content FROM todos")?;
-    let todos = stmt.query_map([], |row| {
-        Ok(Todo {
-            id: Some(row.get(0)?),
-            day: row.get(1)?,
-            content: row.get(2)?,
-        })
-    })?
-    .collect::<Result<Vec<_>, _>>()?;
+    let todos = stmt
+        .query_map([], |row| {
+            Ok(Todo {
+                id: Some(row.get(0)?),
+                day: row.get(1)?,
+                content: row.get(2)?,
+            })
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
     Ok(todos)
 }
-
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     dotenv().ok(); // Load .env file if it exists
     tauri::Builder::default()
+        .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_deep_link::init())
         .setup(|app| {
             let app_handle = app.handle();
             let app_dir = app_handle
@@ -232,9 +236,9 @@ pub fn run() {
             export_data,
             import_data,
             sync_todos,
-            login_with_telegram,
             logout,
-            get_auth_state
+            get_auth_state,
+            open_telegram_login
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

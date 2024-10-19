@@ -15,11 +15,20 @@
         "title": "myquest",
         "width": 800,
         "height": 600
-        
       }
     ],
     "security": {
-      "csp": null
+      "csp": null,
+      "capabilities": ["default"]
+    },
+    "withGlobalTauri": true
+  },
+  "plugins": {
+    "deep-link": {
+      "mobile": [{ "host": "xyz.waozi.myquest" }],
+      "desktop": {
+        "schemes": ["myquest"]
+      }
     }
   },
   "bundle": {

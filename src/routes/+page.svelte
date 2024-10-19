@@ -36,7 +36,6 @@
     }
 </script>
 
-`
 <div class="container">
     <div class="header">
         <h1>{days[$activeTab]}</h1>
@@ -62,7 +61,6 @@
         <SignInModal />
     {/if}
 </Modal>
-`
 
 <style>
     .container {

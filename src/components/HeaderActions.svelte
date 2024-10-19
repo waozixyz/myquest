@@ -1,11 +1,12 @@
 <script lang="ts">
     import { modalStore } from "../stores/modalStore";
     import { isLoggedIn, logout } from "../stores/authStore";
+    import logInIcon from "../assets/log-in.svg";
+    import logOutIcon from "../assets/log-out.svg";
 
     function openModal(type: "signIn" | "info" | "settings") {
         modalStore.open(type);
     }
-
     function handleSignOut() {
         logout();
     }
@@ -18,11 +19,11 @@
             on:click={() => openModal("signIn")}
             title="Sign In"
         >
-            ⎆
+            <img src={logInIcon} alt="Sign In" class="icon" />
         </button>
     {:else}
         <button class="icon-button" on:click={handleSignOut} title="Sign Out">
-            🚶
+            <img src={logOutIcon} alt="Sign Out" class="icon" />
         </button>
     {/if}
     <button class="icon-button" on:click={() => openModal("info")} title="Info">
@@ -42,6 +43,9 @@
         display: flex;
         gap: 0.5rem;
     }
+    .icon-button img {
+        filter: invert(1);
+    }
     .icon-button {
         background-color: var(--secondary-color);
         color: var(--text-color);
@@ -59,5 +63,9 @@
         background-color: var(--hover-color);
         transform: translateY(-3px);
         box-shadow: 0 5px 15px rgba(255, 58, 134, 0.3);
+    }
+    .icon {
+        width: 20px;
+        height: 20px;
     }
 </style>

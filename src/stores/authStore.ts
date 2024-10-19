@@ -1,3 +1,4 @@
+// authStore.ts
 import { writable } from "svelte/store";
 import { getStorage } from "../lib/storage-factory";
 import type { TelegramUser } from "../lib/storage-interface";
@@ -28,7 +29,7 @@ function createAuthStore() {
     },
     logout: async () => {
       await initStorage();
-      storage.logout();
+      await storage.logout();
       set({ isLoggedIn: false, username: "" });
     },
     checkAuth: async () => {
