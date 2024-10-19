@@ -27,3 +27,5 @@ rusqlite = { version = "0.32.1", features = ["bundled"] }
 reqwest = "0.12.0"
 dotenv = "0.15.0"
 url = "2.5.2"
+tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"

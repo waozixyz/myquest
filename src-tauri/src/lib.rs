@@ -6,7 +6,6 @@ use std::env;
 use std::sync::{Arc, Mutex};
 use tauri::Manager;
 use tauri_plugin_shell::ShellExt;
-use url::Url;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct Todo {
@@ -206,10 +205,13 @@ fn get_all_todos(conn: &Connection) -> Result<Vec<Todo>, rusqlite::Error> {
         .collect::<Result<Vec<_>, _>>()?;
     Ok(todos)
 }
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     dotenv().ok(); // Load .env file if it exists
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_deep_link::init())
         .setup(|app| {

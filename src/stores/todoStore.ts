@@ -4,7 +4,6 @@ import { getStorage } from '../lib/storage-factory';
 
 function createTodoStore() {
   const { subscribe, update, set } = writable<{ [day: string]: Todo[] }>({});
-
   let storage: Awaited<ReturnType<typeof getStorage>>;
 
   async function initStorage() {
@@ -34,11 +33,15 @@ function createTodoStore() {
     },
     sync: async () => {
       await initStorage();
-      await storage.sync();
-      // Reload todos for all days
-      const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-      for (const day of days) {
-        await todoStore.loadTodos(day);
+      if (storage.isUserLoggedIn()) {
+        await storage.sync();
+        // Reload todos for all days
+        const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        for (const day of days) {
+          await todoStore.loadTodos(day);
+        }
+      } else {
+        console.log("User is not logged in. Skipping sync.");
       }
     },
     exportData: async () => {
@@ -47,11 +50,30 @@ function createTodoStore() {
     },
     importData: async (data: string) => {
       await initStorage();
+      
+      // Parse the imported data
+      const importedTodos = JSON.parse(data);
+      
+      // Update the store with the imported data
+      update(state => {
+        const newState = { ...state };
+        importedTodos.forEach((todo: Todo) => {
+          if (!newState[todo.day]) {
+            newState[todo.day] = [];
+          }
+          newState[todo.day].push(todo);
+        });
+        return newState;
+      });
+    
+      // Save the imported data to storage
       await storage.importData(data);
-      // Reload todos for all days after import
-      const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-      for (const day of days) {
-        await todoStore.loadTodos(day);
+    
+      // Attempt to sync if user is logged in
+      if (storage.isUserLoggedIn()) {
+        await todoStore.sync();
+      } else {
+        console.log("User is not logged in. Imported data will not be synced.");
       }
     }
   };

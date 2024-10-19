@@ -7,30 +7,38 @@
     import venusIcon from "../assets/venus.png";
     import saturnIcon from "../assets/saturn.png";
     import sunIcon from "../assets/sun.png";
-
+    import { onMount } from 'svelte';
+   
     const days = [
-        { name: "Monday", symbol: moonIcon },
-        { name: "Tuesday", symbol: marsIcon },
-        { name: "Wednesday", symbol: mercuryIcon },
-        { name: "Thursday", symbol: jupiterIcon },
-        { name: "Friday", symbol: venusIcon },
-        { name: "Saturday", symbol: saturnIcon },
-        { name: "Sunday", symbol: sunIcon },
+      { name: "Monday", symbol: moonIcon },
+      { name: "Tuesday", symbol: marsIcon },
+      { name: "Wednesday", symbol: mercuryIcon },
+      { name: "Thursday", symbol: jupiterIcon },
+      { name: "Friday", symbol: venusIcon },
+      { name: "Saturday", symbol: saturnIcon },
+      { name: "Sunday", symbol: sunIcon },
     ];
-</script>
-
-<div class="tabs">
+   
+    onMount(() => {
+      const currentDay = new Date().getDay();
+      const currentTabIndex = currentDay === 0 ? 6 : currentDay - 1;
+      activeTab.set(currentTabIndex);
+    });
+   </script>
+   
+   <div class="tabs">
     {#each days as day, i}
-        <button
-            class:active={$activeTab === i}
-            on:click={() => activeTab.set(i)}
-            title={day.name}
-        >
-            <img src={day.symbol} alt={day.name} class="symbol" />
-            <span class="name">{day.name}</span>
-        </button>
+      <button
+        class:active={$activeTab === i}
+        on:click={() => activeTab.set(i)}
+        title={day.name}
+      >
+        <img src={day.symbol} alt={day.name} class="symbol" />
+        <span class="name">{day.name}</span>
+      </button>
     {/each}
-</div>
+   </div>
+   
 
 <style>
     .tabs {
