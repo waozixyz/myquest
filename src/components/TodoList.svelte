@@ -28,7 +28,6 @@
   let draggedTodo: Todo | null = null;
   let draggedOverDay: string | null = null;
   let dropIndex: number | null = null;
-  let status = '';
 
   function addTodo() {
     if (newTodo.trim()) {
@@ -43,7 +42,6 @@
 
   function handleDragStart(e: DragEvent, todo: Todo) {
     draggedTodo = todo;
-    status = 'Started dragging task';
     e.dataTransfer!.effectAllowed = "move";
     e.dataTransfer!.setData("text", todo.id);
     
@@ -68,10 +66,8 @@
 
     if (isWithinExpandedRect(e, rect)) {
       draggedOverDay = day;
-      status = `Dragging over ${day}`;
     } else {
       draggedOverDay = null;
-      status = 'Dragging within todo list';
     }
   }
 
@@ -80,7 +76,6 @@
     if (draggedTodo) {
       if (zone !== 'todo-list' && zone !== currentDay) {
         todoStore.moveTodoToDay(draggedTodo, zone);
-        status = `Moved task to ${zone}`;
       } else if (dropIndex !== null) {
         const oldIndex = todos.findIndex(t => t.id === draggedTodo.id);
         let newIndex = dropIndex;
@@ -91,7 +86,6 @@
           const [removed] = updatedTodos.splice(oldIndex, 1);
           updatedTodos.splice(newIndex, 0, removed);
           todoStore.reorderTodos(currentDay, updatedTodos);
-          status = 'Reordered task';
         }
       }
     }
@@ -100,9 +94,6 @@
   }
 
   function handleDragEnd(e: DragEvent) {
-    if (!e.dataTransfer?.dropEffect || e.dataTransfer.dropEffect === 'none') {
-      status = 'Cancelled dragging';
-    }
     draggedTodo = null;
     draggedOverDay = null;
     dropIndex = null;
@@ -112,8 +103,6 @@
     dropIndex = null;
   }
 </script>
-
-<h2 id="app_status">Drag status: {status}</h2>
 
 <div class="tabs">
   {#each days as day, i}
