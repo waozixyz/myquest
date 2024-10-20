@@ -222,9 +222,12 @@ fn get_all_todos(conn: &Connection) -> Result<Vec<Todo>, rusqlite::Error> {
 }
 
 #[tauri::command]
-fn move_todo_to_day(state: tauri::State<AppState>, todo_id: i64, new_day: String) -> Result<(), String> {
+fn move_todo_to_day(state: tauri::State<AppState>, todo: Todo, new_day: String) -> Result<(), String> {
     let mut conn = state.db.lock().unwrap();
     let tx = conn.transaction().map_err(|e| e.to_string())?;
+
+    // Ensure the todo has an id
+    let todo_id = todo.id.ok_or("Todo doesn't have an id")?;
 
     tx.execute(
         "UPDATE todos SET day = ? WHERE id = ?",
@@ -236,7 +239,6 @@ fn move_todo_to_day(state: tauri::State<AppState>, todo_id: i64, new_day: String
 
     Ok(())
 }
-
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     dotenv().ok(); // Load .env file if it exists
