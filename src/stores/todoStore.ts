@@ -53,6 +53,17 @@ function createTodoStore() {
       update(state => ({ ...state, [day]: newOrder }));
       await storage.updateTodoOrder(day, newOrder);
     },
+
+    moveTodoToDay: async (todo: Todo, newDay: string) => {
+      await initStorage();
+      update(state => ({
+        ...state,
+        [todo.day]: state[todo.day].filter(t => t.id !== todo.id),
+        [newDay]: [...(state[newDay] || []), { ...todo, day: newDay }]
+      }));
+      await storage.moveTodoToDay(todo, newDay);
+    },
+
     importData: async (data: string) => {
       await initStorage();
       

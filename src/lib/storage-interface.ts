@@ -10,6 +10,7 @@ export interface StorageInterface {
   logout(): Promise<void>;
   isUserLoggedIn(): boolean;
   getUsername(): string;
+  moveTodoToDay(todo: Todo, newDay: string): Promise<void>;
   updateTodoOrder(day: string, todos: Todo[]): Promise<void>;
 }
 
@@ -26,4 +27,5 @@ export interface Todo {
   id?: number;
   day: string;
   content: string;
+  isDragging?: boolean;
 }

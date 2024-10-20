@@ -38,7 +38,9 @@ export class TauriStorage implements StorageInterface {
   async importData(data: string): Promise<void> {
     await invoke('import_data', { data });
   }
-
+  async moveTodoToDay(todo: Todo, newDay: string): Promise<void> {
+    await invoke('move_todo_to_day', { todo, newDay });
+  }
   async loginWithTelegram(user: TelegramUser): Promise<boolean> {
     try {
       const result: { success: boolean; username: string } = await invoke('login_with_telegram', { user });

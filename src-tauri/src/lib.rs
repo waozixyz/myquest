@@ -221,6 +221,22 @@ fn get_all_todos(conn: &Connection) -> Result<Vec<Todo>, rusqlite::Error> {
     Ok(todos)
 }
 
+#[tauri::command]
+fn move_todo_to_day(state: tauri::State<AppState>, todo_id: i64, new_day: String) -> Result<(), String> {
+    let mut conn = state.db.lock().unwrap();
+    let tx = conn.transaction().map_err(|e| e.to_string())?;
+
+    tx.execute(
+        "UPDATE todos SET day = ? WHERE id = ?",
+        (&new_day, &todo_id),
+    )
+    .map_err(|e| e.to_string())?;
+
+    tx.commit().map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     dotenv().ok(); // Load .env file if it exists
@@ -256,7 +272,8 @@ pub fn run() {
             logout,
             get_auth_state,
             open_telegram_login,
-            update_todo_order
+            update_todo_order,
+            move_todo_to_day
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

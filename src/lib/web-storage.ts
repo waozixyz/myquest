@@ -149,7 +149,18 @@ export class WebStorage implements StorageInterface {
   getUsername(): string {
     return this.username;
   }
-
+  async moveTodoToDay(todo: Todo, newDay: string): Promise<void> {
+    // Remove todo from the current day
+    let currentDayTodos = await this.getTodos(todo.day);
+    currentDayTodos = currentDayTodos.filter(t => t.id !== todo.id);
+    localStorage.setItem(this.getStorageKey(todo.day), JSON.stringify(currentDayTodos));
+  
+    // Add todo to the new day
+    const newDayTodos = await this.getTodos(newDay);
+    const updatedTodo = { ...todo, day: newDay };
+    newDayTodos.push(updatedTodo);
+    localStorage.setItem(this.getStorageKey(newDay), JSON.stringify(newDayTodos));
+  }
   private async getAllTodos(): Promise<Todo[]> {
     const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     let allTodos: Todo[] = [];
