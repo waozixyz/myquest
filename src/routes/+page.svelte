@@ -4,9 +4,6 @@
     import {
       activeTab,
       notification,
-      isLoggedIn,
-      username,
-      showNotification,
     } from "../stores/uiStore";
     import { modalStore } from "../stores/modalStore";
     import TodoList from "../components/TodoList.svelte";
@@ -15,7 +12,6 @@
     import SettingsModal from "../components/SettingsModal.svelte";
     import InfoModal from "../components/InfoModal.svelte";
     import SignInModal from "../components/SignInModal.svelte";
-    import type { Todo } from '../lib/storage-interface';
    
     const days = [
       "Monday",
@@ -61,10 +57,15 @@
    
    <style>
      .container {
-       max-width: 800px;
-       margin: 0 auto;
-       padding: 2rem;
-     }
+        max-width: 800px;
+        width: 90%;
+        padding: 2rem;
+        background-color: rgba(20, 20, 40, 0.8);
+        border-radius: 20px;
+        box-shadow: 0 0 30px rgba(255, 58, 134, 0.3);
+        backdrop-filter: blur(10px);
+        margin-top: 0;
+    }
      .header {
        display: flex;
        justify-content: space-between;
@@ -85,5 +86,13 @@
      }
      .notification.error {
        background-color: #f44336;
+     }
+     @media (max-width: 600px) {
+      .container {
+        width: 95%;
+        padding:1rem;
+        margin: 0 auto;
+      }
+    
      }
    </style>

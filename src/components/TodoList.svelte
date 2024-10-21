@@ -29,6 +29,9 @@
   let draggedOverDay: string | null = null;
   let dropIndex: number | null = null;
 
+  let touchStartY: number | null = null;
+  let touchStartX: number | null = null;
+
   function addTodo() {
     if (newTodo.trim()) {
       todoStore.addTodo({ day: currentDay, content: newTodo.trim() });
@@ -43,8 +46,9 @@
   function handleDragStart(e: DragEvent, todo: Todo) {
     draggedTodo = todo;
     e.dataTransfer!.effectAllowed = "move";
-    e.dataTransfer!.setData("text", todo.id);
-    
+    if (todo.id) {
+      e.dataTransfer!.setData("text", todo.id.toString());
+    }
     const dragImage = e.target as HTMLElement;
     e.dataTransfer!.setDragImage(dragImage, 0, 0);
   }
@@ -76,8 +80,8 @@
     if (draggedTodo) {
       if (zone !== 'todo-list' && zone !== currentDay) {
         todoStore.moveTodoToDay(draggedTodo, zone);
-      } else if (dropIndex !== null) {
-        const oldIndex = todos.findIndex(t => t.id === draggedTodo.id);
+      } else if (dropIndex !== null && draggedTodo !== null) {
+        const oldIndex = todos.findIndex(t => t.id === draggedTodo!.id);
         let newIndex = dropIndex;
         if (oldIndex < newIndex) newIndex--;
         
@@ -102,11 +106,32 @@
   function handleDragLeave() {
     dropIndex = null;
   }
+
+  function handleTouchStart(e: TouchEvent) {
+    touchStartY = e.touches[0].clientY;
+    touchStartX = e.touches[0].clientX;
+  }
+
+  function handleTouchMove(e: TouchEvent) {
+    if (touchStartY === null || touchStartX === null) return;
+
+    const touchEndY = e.touches[0].clientY;
+    const touchEndX = e.touches[0].clientX;
+    const deltaY = touchStartY - touchEndY;
+    const deltaX = touchStartX - touchEndX;
+
+    // If the horizontal movement is greater than the vertical movement, prevent default
+    if (Math.abs(deltaX) > Math.abs(deltaY)) {
+      e.preventDefault();
+    }
+  }
+
 </script>
 
 <div class="tabs">
   {#each days as day, i}
     <button
+      role="tab"
       class:active={$activeTab === i}
       class:dragover={draggedOverDay === day.name}
       on:click={() => activeTab.set(i)}
@@ -124,10 +149,14 @@
 
 <div 
   class="todo-list"
+  role="region"
+  aria-label="Todo list"
   on:dragover|preventDefault
   on:drop={(e) => handleDragDrop(e, 'todo-list')}
+  on:touchstart={handleTouchStart}
+  on:touchmove={handleTouchMove}
 >
-  <form on:submit|preventDefault={addTodo}>
+  <form aria-label="Add new todo" on:submit|preventDefault={addTodo}>
     <input bind:value={newTodo} placeholder="Add a new todo..." />
     <button type="submit">Add</button>
   </form>
@@ -219,16 +248,21 @@
     box-shadow: 0 0 8px rgba(255, 58, 134, 0.4);
   }
 
+
   .todo-list {
     background-color: rgba(30, 30, 60, 0.6);
     padding: 1.5rem;
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    overflow-x: hidden;
+    max-width: 100%;
+    touch-action: pan-y;
   }
 
   .todo-list ul {
     list-style-type: none;
     padding: 0;
+    margin: 0;
   }
 
   .todo-list li {
@@ -237,6 +271,7 @@
     padding: 0.75rem 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     transition: transform 0.2s ease;
+    touch-action: none;
   }
 
   .todo-list li:last-child {
@@ -297,4 +332,40 @@
       margin-right: 0;
     }
   }
+
+  @media (max-width: 600px) {
+    .todo-list {
+      padding: 1rem;
+    }
+
+
+    .todo-content {
+      width: 100%;
+      margin-bottom: 0.5rem;
+    }
+
+    .todo-list li button {
+      margin-left: auto;
+    }
+
+    .tabs {
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+  
+    .tabs button {
+      flex: 1 0 auto;
+      max-width: calc(25% - 0.5rem);
+      margin: 0.25rem;
+    }
+  
+    .tabs button .name {
+      display: none;
+    }
+  
+    .tabs button .symbol {
+      margin-right: 0;
+    }
+  }
+  
 </style>

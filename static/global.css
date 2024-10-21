@@ -87,7 +87,7 @@
     }
 }
 
-/* Global Styles */
+
 body {
     font-family: "Roboto", sans-serif;
     background: linear-gradient(45deg, #0a0a2a, #2a0a3a, #3a0a4a, #4a0a5a);
@@ -101,7 +101,8 @@ body {
     flex-direction: column;
     align-items: center;
     padding-top: 2rem;
-}
+    overflow-x: hidden;
+  }
 
 /* Typography */
 h1,
@@ -111,17 +112,6 @@ h2 {
     text-shadow: 0 0 10px rgba(255, 58, 134, 0.5);
 }
 
-/* Layout Components */
-.container {
-    max-width: 800px;
-    width: 90%;
-    padding: 2rem;
-    background-color: rgba(20, 20, 40, 0.8);
-    border-radius: 20px;
-    box-shadow: 0 0 30px rgba(255, 58, 134, 0.3);
-    backdrop-filter: blur(10px);
-    margin-top: 0;
-}
 
 button {
     background-color: var(--secondary-color);
@@ -185,28 +175,6 @@ form button:hover {
     transform: scale(1.05);
 }
 
-/* Notifications */
-.notification {
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    padding: 10px 20px;
-    border-radius: 5px;
-    color: white;
-    font-weight: bold;
-    z-index: 1000;
-    animation: fadeIn 0.3s ease-out;
-}
-
-.notification.success {
-    background-color: #48c774;
-}
-
-.notification.error {
-    background-color: #ff3860;
-}
-
 /* Footer */
 footer {
     display: flex;
@@ -216,11 +184,13 @@ footer {
 /* Responsive Design */
 @media (max-width: 600px) {
     body {
-        padding-top: 1rem;
+        padding-top: 0rem;
+        border-top-left-radius: 0;
+        border-top-right-radius: 0;
     }
-
-    .container {
-        width: 95%;
-        padding: 1rem;
+  
+    button {
+      padding: 0.4rem 0.8rem;
+      font-size: 0.9rem;
     }
-}
+  }

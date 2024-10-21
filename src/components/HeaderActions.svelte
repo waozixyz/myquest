@@ -43,6 +43,7 @@
 <style>
     .header-buttons {
         display: flex;
+        flex-direction: row;;
         gap: 0.5rem;
     }
     .icon-button img {
