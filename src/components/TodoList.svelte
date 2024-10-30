@@ -273,6 +273,9 @@
     transition: transform 0.2s ease;
     touch-action: none;
   }
+  .todo-list form {
+    margin-bottom: 1.5rem;  /* Adds space below the form */
+  }
 
   .todo-list li:last-child {
     border-bottom: none;
