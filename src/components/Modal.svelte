@@ -14,6 +14,11 @@
             closeModal();
         }
     }
+    // Add this function
+    function handleSubmit(event: Event) {
+        event.preventDefault();
+        // Add any form submission logic here if needed
+    }
 
     onMount(() => {
         if (modalElement) {
@@ -34,25 +39,27 @@
             transition:fly={{ y: -50, duration: 200 }}
             open
             bind:this={modalElement}
+            aria-labelledby="modal-title"
             aria-modal="true"
         >
-            <!-- Wrapper div to handle events -->
-            <div
-                class="modal-wrapper"
+            <form
+                method="dialog"
+                on:submit={handleSubmit}
                 on:click|stopPropagation
-                on:keydown={handleKeydown}
             >
+                <h2 id="modal-title"><slot name="title"></slot></h2>
                 <div class="modal-content">
                     <slot></slot>
                 </div>
                 <button
+                    type="button"
                     class="close-button"
                     on:click={closeModal}
                     aria-label="Close modal"
                 >
                     ×
                 </button>
-            </div>
+            </form>
         </dialog>
     </div>
 {/if}
@@ -72,6 +79,7 @@
         backdrop-filter: blur(5px);
     }
     .modal {
+        display: flex;
         background: linear-gradient(135deg, #1a1a4a, #2a1a5a);
         border-radius: 20px;
         padding: 2rem;
