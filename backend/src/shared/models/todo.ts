@@ -1,16 +1,24 @@
-import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
+
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne } from "typeorm";
+import { User } from "./user";
 
 @Entity()
 export class Todo {
   @PrimaryGeneratedColumn()
-  id!: number;
+  id: number;
 
   @Column()
-  day!: string;
+  day: string;
 
   @Column()
-  content!: string;
+  content: string;
 
-  @Column()
-  userId!: string;
+  @Column({ default: false })
+  done: boolean;
+
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  lastModified: Date;
+
+  @ManyToOne(() => User, user => user.todos)
+  user: User;
 }

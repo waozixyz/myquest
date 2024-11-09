@@ -18,8 +18,8 @@
     "@tauri-apps/plugin-dialog": "~2.0.0",
     "@tauri-apps/plugin-fs": "~2.0.0",
     "@tauri-apps/plugin-shell": ">=2.0.0",
-    "svelte-dnd-action": "^0.9.52",
-    "telegram-login-button": "^0.1.0"
+    "peerjs": "^1.5.4",
+    "svelte-dnd-action": "^0.9.52"
   },
   "devDependencies": {
     "@sveltejs/adapter-static": "^3.0.1",

@@ -1,19 +1,32 @@
-import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
+import { Entity, Column, PrimaryGeneratedColumn, OneToMany, CreateDateColumn, UpdateDateColumn } from "typeorm";
+import { Todo } from "./todo";
 
 @Entity()
 export class User {
   @PrimaryGeneratedColumn()
-  id!: number;
+  id: number;
 
   @Column({ unique: true })
-  telegramId!: string;
+  peerId: string;
+
+  @Column("simple-array")
+  connectedPeers: string[];
 
   @Column()
-  firstName!: string;
+  lastSync: Date;
 
   @Column({ nullable: true })
-  lastName?: string;
+  deviceName?: string;
 
   @Column({ nullable: true })
-  username?: string;
+  deviceType?: string;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
+
+  @OneToMany(() => Todo, todo => todo.user)
+  todos: Todo[];
 }

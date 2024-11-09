@@ -1,7 +1,6 @@
-// src/index.ts
 
 import { startApiServer } from './api/app';
-import { startTelegramBot } from './bot/bot';
+import { startPeerServer } from './peer/peerServer';
 import { AppDataSource } from './shared/database';
 
 async function main() {
@@ -9,14 +8,14 @@ async function main() {
     // Initialize the database connection
     await AppDataSource.initialize();
     console.log("Database connection established");
-
+    
     // Start the API server
     await startApiServer();
     console.log("API server started");
-
-    // Start the Telegram bot
-    await startTelegramBot();
-    console.log("Telegram bot started");
+    
+    // Start the P2P sync server
+    await startPeerServer();
+    console.log("P2P sync server started");
   } catch (error) {
     console.error("Error starting the application:", error);
     process.exit(1);
@@ -24,3 +23,4 @@ async function main() {
 }
 
 main();
+
