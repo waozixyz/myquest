@@ -88,9 +88,6 @@
         box-shadow: 0 0 30px rgba(255, 58, 134, 0.3);
         border: none;
     }
-    .modal-wrapper {
-        position: relative;
-    }
     .modal-content {
         max-height: 80vh;
         overflow-y: auto;

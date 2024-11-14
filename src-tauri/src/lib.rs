@@ -29,18 +29,54 @@ struct AppState {
     db: Arc<Mutex<Connection>>,
     peer_state: Arc<Mutex<PeerState>>,
 }
-
-fn init_database(conn: &Connection) -> SqliteResult<()> {
-    conn.execute(
-        "CREATE TABLE IF NOT EXISTS todos (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            day TEXT NOT NULL,
-            content TEXT NOT NULL,
-            last_modified TEXT DEFAULT CURRENT_TIMESTAMP
-        )",
+fn init_database(conn: &mut Connection) -> SqliteResult<()> {
+    // First check if the table exists
+    let table_exists: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='todos'",
         [],
+        |row| row.get(0),
     )?;
+
+    if table_exists == 0 {
+        // Create the table if it doesn't exist
+        conn.execute(
+            "CREATE TABLE todos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                day TEXT NOT NULL,
+                content TEXT NOT NULL,
+                last_modified TEXT DEFAULT CURRENT_TIMESTAMP
+            )",
+            [],
+        )?;
+    } else {
+        // Check if last_modified column exists
+        let column_exists: i64 = conn.query_row(
+            "SELECT COUNT(*) FROM pragma_table_info('todos') WHERE name='last_modified'",
+            [],
+            |row| row.get(0),
+        )?;
+
+        // Add the column if it doesn't exist
+        if column_exists == 0 {
+            let tx = conn.transaction()?;
+            
+            // Add column without default value
+            tx.execute(
+                "ALTER TABLE todos ADD COLUMN last_modified TEXT",
+                [],
+            )?;
+            
+            // Update existing rows with current timestamp
+            tx.execute(
+                "UPDATE todos SET last_modified = CURRENT_TIMESTAMP WHERE last_modified IS NULL",
+                [],
+            )?;
+            
+            tx.commit()?;
+        }
+    }
     
+    // Create peer_connections table
     conn.execute(
         "CREATE TABLE IF NOT EXISTS peer_connections (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -297,11 +333,11 @@ pub fn run() {
                 .path()
                 .app_data_dir()
                 .expect("Failed to get app data dir");
-                
+                    
             std::fs::create_dir_all(&app_dir).unwrap();
             let db_path = app_dir.join("todos.db");
-            let conn = Connection::open(db_path).unwrap();
-            init_database(&conn).unwrap();
+            let mut conn = Connection::open(db_path).unwrap();
+            init_database(&mut conn).unwrap();
             
             let initial_peer_state = PeerState {
                 peer_id: None,

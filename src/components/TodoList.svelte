@@ -185,6 +185,23 @@
 </div>
 
 <style>
+  
+
+form button {
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    border-radius: 0 10px 10px 0;
+    transition: all 0.3s ease;
+    animation: pulse 2s infinite;
+}
+
+form button:hover {
+    background-color: #ff1a4b;
+    transform: scale(1.05);
+}
 
 .todo-list li,
   .todo-list li * {
@@ -336,7 +353,7 @@
     }
   }
 
-  @media (max-width: 600px) {
+  @media (max-width: 650px) {
     .todo-list {
       padding: 1rem;
     }

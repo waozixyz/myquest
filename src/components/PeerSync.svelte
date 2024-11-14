@@ -1,7 +1,8 @@
 <script lang="ts">
     import { onMount, onDestroy } from "svelte";
     import { writable, type Writable } from "svelte/store";
-    import Peer, { DataConnection } from 'peerjs';
+    import Peer from 'peerjs';
+    import type { DataConnection } from "peerjs";
     import { getStorage } from '../lib/storage-factory';
     
     type SyncStatus = 'disconnected' | 'connecting' | 'connected';
@@ -22,15 +23,12 @@
         storage = await getStorage();
         initializePeer();
     });
-
     function initializePeer() {
         syncStatus.set('connecting');
         
+        // Remove custom host configuration to use PeerJS's cloud broker
         const peerOptions = {
-            debug: 2,
-            host: 'localhost',
-            port: 9000,
-            path: '/myapp'
+            debug: 2
         };
 
         peer = new Peer(peerOptions);
@@ -39,27 +37,26 @@
             console.error('PeerJS error:', err);
             syncStatus.set('disconnected');
         });
-    
+
         const timeout = setTimeout(() => {
             if ($syncStatus === 'connecting') {
                 console.error('PeerJS connection timeout');
                 syncStatus.set('disconnected');
             }
         }, 5000);
-    
+
         peer.on('open', (id) => {
             clearTimeout(timeout);
             console.log('PeerJS connected with ID:', id);
             peerId.set(id);
             syncStatus.set('connected');
         });
-    
+
         peer.on('connection', (conn) => {
             connections = [...connections, conn];
             handleConnection(conn);
         });
     }
-
     onDestroy(() => {
         if (peer) {
             peer.destroy();
@@ -223,6 +220,7 @@
 }
 
 .sync-code {
+    color: var(--text-color);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -230,23 +228,5 @@
     padding: 1rem;
     background: rgba(255, 255, 255, 0.1);
     border-radius: 8px;
-}
-
-code {
-    background: var(--secondary-color);
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
-    color: var(--text-color);
-    font-family: monospace;
-    font-size: 1.1em;
-}
-
-button {
-    transition: all 0.2s ease-in-out;
-}
-
-button:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 </style>

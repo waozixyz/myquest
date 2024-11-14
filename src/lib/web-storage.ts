@@ -1,5 +1,6 @@
 import type { StorageInterface, Todo } from './storage-interface';
-import Peer, { DataConnection, PeerOptions } from 'peerjs';
+import Peer from 'peerjs';
+import type { DataConnection, PeerOptions} from "peerjs";
 
 export class WebStorage implements StorageInterface {
     private peer: Peer | null = null;

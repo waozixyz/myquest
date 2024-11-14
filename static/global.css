@@ -120,7 +120,7 @@ button {
     padding: 0.5rem 1rem;
     cursor: pointer;
     transition: all 0.3s ease;
-    border-radius: 10px;
+    border-radius: 20px;
     font-weight: bold;
     display: flex;
     align-items: center;
@@ -136,6 +136,22 @@ button:hover {
 button.active {
     background-color: var(--accent-color);
     box-shadow: 0 0 20px rgba(255, 58, 134, 0.5);
+}
+
+
+code {
+    background: var(--secondary-color);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    color: var(--text-color);
+    font-family: monospace;
+    font-size: 1.1em;
+}
+
+
+button:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 /* Forms */
@@ -159,22 +175,6 @@ input:focus {
     box-shadow: 0 0 10px rgba(255, 58, 134, 0.5);
 }
 
-form button {
-    background-color: var(--accent-color);
-    color: white;
-    border: none;
-    padding: 0.5rem 1rem;
-    cursor: pointer;
-    border-radius: 0 10px 10px 0;
-    transition: all 0.3s ease;
-    animation: pulse 2s infinite;
-}
-
-form button:hover {
-    background-color: #ff1a4b;
-    transform: scale(1.05);
-}
-
 /* Footer */
 footer {
     display: flex;
@@ -182,7 +182,7 @@ footer {
 }
 
 /* Responsive Design */
-@media (max-width: 600px) {
+@media (max-width: 650px) {
     body {
         padding-top: 0rem;
         border-top-left-radius: 0;

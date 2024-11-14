@@ -87,7 +87,7 @@
      .notification.error {
        background-color: #f44336;
      }
-     @media (max-width: 600px) {
+     @media (max-width: 650px) {
       .container {
         width: 95%;
         padding:1rem;
