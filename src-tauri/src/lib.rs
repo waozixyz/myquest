@@ -1,5 +1,4 @@
 use dotenv::dotenv;
-use reqwest::Client;
 use rusqlite::{Connection, Result as SqliteResult}; 
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
@@ -23,11 +22,11 @@ struct PeerState {
     last_sync: Option<String>,
     device_name: Option<String>,
     device_type: Option<String>,
+    sync_status: String, // "disconnected", "connecting", "connected"
 }
 
 struct AppState {
     db: Arc<Mutex<Connection>>,
-    http_client: Client,
     peer_state: Arc<Mutex<PeerState>>,
 }
 
@@ -48,7 +47,8 @@ fn init_database(conn: &Connection) -> SqliteResult<()> {
             peer_id TEXT UNIQUE NOT NULL,
             last_sync TEXT DEFAULT CURRENT_TIMESTAMP,
             device_name TEXT,
-            device_type TEXT
+            device_type TEXT,
+            sync_status TEXT DEFAULT 'disconnected'
         )",
         [],
     )?;
@@ -57,23 +57,26 @@ fn init_database(conn: &Connection) -> SqliteResult<()> {
 }
 
 #[tauri::command]
-async fn add_todo(state: tauri::State<'_, AppState>, todo: Todo) -> Result<(), String> {
+async fn add_todo(state: tauri::State<'_, AppState>, todo: Todo) -> Result<i64, String> {
     let conn = state.db.lock().unwrap();
     let now = Utc::now().to_rfc3339();
     
-    conn.execute(
-        "INSERT INTO todos (day, content, last_modified) VALUES (?, ?, ?)",
-        (&todo.day, &todo.content, &now),
+    let mut stmt = conn.prepare(
+        "INSERT INTO todos (day, content, last_modified) VALUES (?, ?, ?) RETURNING id"
     ).map_err(|e| e.to_string())?;
 
-    Ok(())
+    let id = stmt.query_row((&todo.day, &todo.content, &now), |row| {
+        row.get(0)
+    }).map_err(|e| e.to_string())?;
+
+    Ok(id)
 }
 
 #[tauri::command]
 async fn get_todos(state: tauri::State<'_, AppState>, day: String) -> Result<Vec<Todo>, String> {
     let conn = state.db.lock().unwrap();
     let mut stmt = conn
-        .prepare("SELECT id, day, content, last_modified FROM todos WHERE day = ?")
+        .prepare("SELECT id, day, content, last_modified FROM todos WHERE day = ? ORDER BY id ASC")
         .map_err(|e| e.to_string())?;
 
     let todos = stmt
@@ -82,7 +85,7 @@ async fn get_todos(state: tauri::State<'_, AppState>, day: String) -> Result<Vec
                 id: Some(row.get(0)?),
                 day: row.get(1)?,
                 content: row.get(2)?,
-                last_modified: row.get(3)?,
+                last_modified: Some(row.get(3)?),
             })
         })
         .map_err(|e| e.to_string())?
@@ -104,7 +107,7 @@ async fn delete_todo(state: tauri::State<'_, AppState>, id: i64) -> Result<(), S
 async fn export_data(state: tauri::State<'_, AppState>) -> Result<String, String> {
     let conn = state.db.lock().unwrap();
     let mut stmt = conn
-        .prepare("SELECT id, day, content, last_modified FROM todos")
+        .prepare("SELECT id, day, content, last_modified FROM todos ORDER BY id ASC")
         .map_err(|e| e.to_string())?;
 
     let todos = stmt
@@ -113,7 +116,7 @@ async fn export_data(state: tauri::State<'_, AppState>) -> Result<String, String
                 id: Some(row.get(0)?),
                 day: row.get(1)?,
                 content: row.get(2)?,
-                last_modified: row.get(3).ok(),
+                last_modified: Some(row.get(3)?),
             })
         })
         .map_err(|e| e.to_string())?
@@ -125,29 +128,35 @@ async fn export_data(state: tauri::State<'_, AppState>) -> Result<String, String
 
 #[tauri::command]
 async fn import_data(state: tauri::State<'_, AppState>, data: String) -> Result<(), String> {
-    let mut conn = state.db.lock().unwrap(); // Add mut here
+    let mut conn = state.db.lock().unwrap();
     let todos: Vec<Todo> = serde_json::from_str(&data).map_err(|e| e.to_string())?;
 
     let tx = conn.transaction().map_err(|e| e.to_string())?;
     
-    tx.execute("DELETE FROM todos", [])
-        .map_err(|e| e.to_string())?;
-
+    // Instead of deleting all todos, merge with existing ones based on last_modified
     for todo in todos {
-        tx.execute(
-            "INSERT INTO todos (day, content, last_modified) VALUES (?, ?, ?)",
-            (
-                &todo.day,
-                &todo.content,
-                &todo.last_modified.unwrap_or_else(|| Utc::now().to_rfc3339()),
-            ),
-        )
-        .map_err(|e| e.to_string())?;
+        if let Some(id) = todo.id {
+            let last_modified = todo.last_modified.unwrap_or_else(|| Utc::now().to_rfc3339());
+            
+            // Try to update existing todo
+            let updated = tx.execute(
+                "UPDATE todos SET content = ?, day = ?, last_modified = ? 
+                 WHERE id = ? AND (last_modified IS NULL OR last_modified < ?)",
+                (&todo.content, &todo.day, &last_modified, id, &last_modified),
+            ).map_err(|e| e.to_string())?;
+            
+            // If no update occurred (either todo doesn't exist or is newer), insert
+            if updated == 0 {
+                tx.execute(
+                    "INSERT OR IGNORE INTO todos (id, day, content, last_modified) VALUES (?, ?, ?, ?)",
+                    (id, &todo.day, &todo.content, &last_modified),
+                ).map_err(|e| e.to_string())?;
+            }
+        }
     }
 
     tx.commit().map_err(|e| e.to_string())
 }
-
 
 #[tauri::command]
 async fn connect_peer(
@@ -159,20 +168,27 @@ async fn connect_peer(
     let mut peer_state = state.peer_state.lock().unwrap();
     let conn = state.db.lock().unwrap();
     
+    peer_state.sync_status = "connecting".to_string();
+    
     if let Some(target_peer_id) = peer_id {
         // Connect to existing peer
         conn.execute(
-            "INSERT OR REPLACE INTO peer_connections (peer_id, last_sync, device_name, device_type) 
-             VALUES (?, CURRENT_TIMESTAMP, ?, ?)",
+            "INSERT OR REPLACE INTO peer_connections 
+             (peer_id, last_sync, device_name, device_type, sync_status) 
+             VALUES (?, CURRENT_TIMESTAMP, ?, ?, 'connected')",
             (&target_peer_id, &device_name, &device_type),
         ).map_err(|e| e.to_string())?;
         
-        peer_state.connected_peers.push(target_peer_id.clone());
+        if !peer_state.connected_peers.contains(&target_peer_id) {
+            peer_state.connected_peers.push(target_peer_id.clone());
+        }
+        peer_state.sync_status = "connected".to_string();
         Ok(target_peer_id)
     } else {
         // Generate new peer ID
         let new_peer_id = Uuid::new_v4().to_string();
         peer_state.peer_id = Some(new_peer_id.clone());
+        peer_state.sync_status = "connected".to_string();
         Ok(new_peer_id)
     }
 }
@@ -183,11 +199,14 @@ async fn disconnect_peer(state: tauri::State<'_, AppState>, peer_id: String) -> 
     let conn = state.db.lock().unwrap();
     
     conn.execute(
-        "DELETE FROM peer_connections WHERE peer_id = ?",
+        "UPDATE peer_connections SET sync_status = 'disconnected' WHERE peer_id = ?",
         [&peer_id],
     ).map_err(|e| e.to_string())?;
     
     peer_state.connected_peers.retain(|p| p != &peer_id);
+    if peer_state.connected_peers.is_empty() {
+        peer_state.sync_status = "disconnected".to_string();
+    }
     Ok(())
 }
 
@@ -200,24 +219,31 @@ async fn get_peer_id(state: tauri::State<'_, AppState>) -> Result<Option<String>
 #[tauri::command]
 async fn is_peer_connected(state: tauri::State<'_, AppState>) -> Result<bool, String> {
     let peer_state = state.peer_state.lock().unwrap();
-    Ok(peer_state.peer_id.is_some() && !peer_state.connected_peers.is_empty())
+    Ok(peer_state.sync_status == "connected" && peer_state.peer_id.is_some() && !peer_state.connected_peers.is_empty())
+}
+
+#[tauri::command]
+async fn get_sync_status(state: tauri::State<'_, AppState>) -> Result<String, String> {
+    let peer_state = state.peer_state.lock().unwrap();
+    Ok(peer_state.sync_status.clone())
 }
 
 #[tauri::command]
 async fn update_todo_order(state: tauri::State<'_, AppState>, day: String, todos: Vec<Todo>) -> Result<(), String> {
-    let mut conn = state.db.lock().unwrap(); // Add mut here
+    let mut conn = state.db.lock().unwrap();
     let tx = conn.transaction().map_err(|e| e.to_string())?;
+    let now = Utc::now().to_rfc3339();
 
+    // Delete existing todos for the day
     tx.execute("DELETE FROM todos WHERE day = ?", [&day])
         .map_err(|e| e.to_string())?;
 
-    for todo in todos {
-        let now = Utc::now().to_rfc3339();
+    // Insert todos with new order
+    for (index, todo) in todos.iter().enumerate() {
         tx.execute(
-            "INSERT INTO todos (day, content, last_modified) VALUES (?, ?, ?)",
-            (&day, &todo.content, &now),
-        )
-        .map_err(|e| e.to_string())?;
+            "INSERT INTO todos (id, day, content, last_modified) VALUES (?, ?, ?, ?)",
+            (index as i64 + 1, &day, &todo.content, &now),
+        ).map_err(|e| e.to_string())?;
     }
 
     tx.commit().map_err(|e| e.to_string())
@@ -225,7 +251,7 @@ async fn update_todo_order(state: tauri::State<'_, AppState>, day: String, todos
 
 #[tauri::command]
 async fn move_todo_to_day(state: tauri::State<'_, AppState>, todo: Todo, new_day: String) -> Result<(), String> {
-    let mut conn = state.db.lock().unwrap(); // Add mut here
+    let mut conn = state.db.lock().unwrap();
     let tx = conn.transaction().map_err(|e| e.to_string())?;
 
     let todo_id = todo.id.ok_or("Todo doesn't have an id")?;
@@ -234,8 +260,7 @@ async fn move_todo_to_day(state: tauri::State<'_, AppState>, todo: Todo, new_day
     tx.execute(
         "UPDATE todos SET day = ?, last_modified = ? WHERE id = ?",
         (&new_day, &now, &todo_id),
-    )
-    .map_err(|e| e.to_string())?;
+    ).map_err(|e| e.to_string())?;
 
     tx.commit().map_err(|e| e.to_string())
 }
@@ -284,11 +309,11 @@ pub fn run() {
                 last_sync: None,
                 device_name: None,
                 device_type: None,
+                sync_status: "disconnected".to_string(),
             };
             
             app.manage(AppState {
                 db: Arc::new(Mutex::new(conn)),
-                http_client: Client::new(),
                 peer_state: Arc::new(Mutex::new(initial_peer_state)),
             });
             
@@ -306,7 +331,8 @@ pub fn run() {
             connect_peer,
             disconnect_peer,
             get_peer_id,
-            is_peer_connected
+            is_peer_connected,
+            get_sync_status
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

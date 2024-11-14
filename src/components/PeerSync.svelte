@@ -1,118 +1,252 @@
 <script lang="ts">
     import { onMount, onDestroy } from "svelte";
-    import { writable } from "svelte/store";
-    import Peer from 'peerjs';
+    import { writable, type Writable } from "svelte/store";
+    import Peer, { DataConnection } from 'peerjs';
+    import { getStorage } from '../lib/storage-factory';
+    
+    type SyncStatus = 'disconnected' | 'connecting' | 'connected';
     
     export let onConnect: (peerId: string) => void;
-    
-    let peer: Peer;
+    let peer: Peer | null = null;
     let peerId = writable<string>('');
     let connectId = '';
-    let connections = [];
-    let syncStatus = writable<'disconnected' | 'connected'>('disconnected');
-    
-    onMount(() => {
-        peer = new Peer();
+    let connections: DataConnection[] = [];
+    let syncStatus: Writable<SyncStatus> = writable('disconnected');
+    let storage: Awaited<ReturnType<typeof getStorage>>;
+
+    function isButtonDisabled(status: SyncStatus, id: string): boolean {
+        return !id || status === "connecting" || status === "connected";
+    }
+
+    onMount(async () => {
+        storage = await getStorage();
+        initializePeer();
+    });
+
+    function initializePeer() {
+        syncStatus.set('connecting');
         
+        const peerOptions = {
+            debug: 2,
+            host: 'localhost',
+            port: 9000,
+            path: '/myapp'
+        };
+
+        peer = new Peer(peerOptions);
+        
+        peer.on('error', (err) => {
+            console.error('PeerJS error:', err);
+            syncStatus.set('disconnected');
+        });
+    
+        const timeout = setTimeout(() => {
+            if ($syncStatus === 'connecting') {
+                console.error('PeerJS connection timeout');
+                syncStatus.set('disconnected');
+            }
+        }, 5000);
+    
         peer.on('open', (id) => {
+            clearTimeout(timeout);
+            console.log('PeerJS connected with ID:', id);
             peerId.set(id);
             syncStatus.set('connected');
         });
     
         peer.on('connection', (conn) => {
-            connections.push(conn);
+            connections = [...connections, conn];
             handleConnection(conn);
         });
-    });
-    
+    }
+
     onDestroy(() => {
         if (peer) {
             peer.destroy();
+            connections = [];
+            syncStatus.set('disconnected');
         }
     });
-    
-    function handleConnection(conn) {
-        conn.on('data', (data) => {
-            // Handle incoming todo updates
-            console.log('Received data:', data);
-            // You'll need to implement todo sync logic here
+
+    function handleConnection(conn: DataConnection) {
+        const connectionId = conn.peer;
+        console.log('New connection established with peer:', connectionId);
+
+        conn.on('data', async (data: any) => {
+            try {
+                if (typeof data !== 'object') {
+                    console.error('Invalid data format received');
+                    return;
+                }
+
+                switch (data.type) {
+                    case 'SYNC_REQUEST':
+                        const todos = await storage.exportData();
+                        conn.send({
+                            type: 'SYNC_RESPONSE',
+                            todos: JSON.parse(todos)
+                        });
+                        break;
+
+                    case 'SYNC_RESPONSE':
+                        if (data.todos) {
+                            await storage.importData(JSON.stringify(data.todos));
+                        }
+                        break;
+
+                    default:
+                        console.warn('Unknown message type:', data.type);
+                }
+            } catch (error) {
+                console.error('Error handling peer data:', error);
+            }
+        });
+
+        conn.on('close', () => {
+            console.log('Connection closed with peer:', connectionId);
+            connections = connections.filter(c => c !== conn);
+            if (connections.length === 0) {
+                syncStatus.set('disconnected');
+            }
+        });
+
+        conn.on('error', (error) => {
+            console.error('Connection error with peer:', connectionId, error);
+            connections = connections.filter(c => c !== conn);
+            if (connections.length === 0) {
+                syncStatus.set('disconnected');
+            }
+        });
+
+        // Initial sync request
+        conn.send({
+            type: 'SYNC_REQUEST'
         });
     }
-    
-    function connectToPeer() {
-        if (!connectId) return;
+
+    async function connectToPeer() {
+        if (!connectId || !peer) return;
         
-        const conn = peer.connect(connectId);
-        connections.push(conn);
-        
-        conn.on('open', () => {
-            handleConnection(conn);
-            onConnect(connectId);
-        });
+        try {
+            syncStatus.set('connecting');
+            const conn = peer.connect(connectId);
+            
+            const connectionTimeout = setTimeout(() => {
+                if (!conn.open) {
+                    syncStatus.set('disconnected');
+                    throw new Error('Connection timeout');
+                }
+            }, 5000);
+
+            conn.on('open', () => {
+                clearTimeout(connectionTimeout);
+                connections = [...connections, conn];
+                handleConnection(conn);
+                onConnect(connectId);
+                syncStatus.set('connected');
+            });
+
+            conn.on('error', (err) => {
+                clearTimeout(connectionTimeout);
+                console.error('Connection error:', err);
+                syncStatus.set('disconnected');
+            });
+
+            conn.on('close', () => {
+                console.log('Connection closed');
+                connections = connections.filter(c => c !== conn);
+                if (connections.length === 0) {
+                    syncStatus.set('disconnected');
+                }
+            });
+        } catch (error) {
+            console.error('Failed to connect:', error);
+            syncStatus.set('disconnected');
+        }
     }
-    </script>
-    
-    <div class="peer-sync">
-        {#if $syncStatus === 'connected'}
-            <div class="sync-code">
-                <p>Your sync code:</p>
-                <code>{$peerId}</code>
-                <button on:click={() => navigator.clipboard.writeText($peerId)}>
-                    Copy
-                </button>
-            </div>
-        {:else}
-            <div class="loader"></div>
-        {/if}
-    
+</script>
+
+
+<div class="peer-sync">
+    {#if $syncStatus === 'connecting'}
+        <div class="loader">
+            <p>Connecting to peer...</p>
+        </div>
+    {:else if $syncStatus === 'connected'}
+        <div class="sync-code">
+            <p>Connected!</p>
+            <p>Your sync code: <code>{$peerId}</code></p>
+            <button on:click={() => navigator.clipboard.writeText($peerId)}>
+                Copy Code
+            </button>
+        </div>
+    {:else}
+
         <div class="connect-form">
-            <input 
-                type="text" 
-                bind:value={connectId} 
+            <input
+                type="text"
+                bind:value={connectId}
                 placeholder="Enter sync code to connect"
             />
-            <button on:click={connectToPeer}>Connect</button>
+            <button 
+                on:click={connectToPeer}
+                disabled={isButtonDisabled($syncStatus, connectId)}
+            >
+                Connect
+            </button>
         </div>
-    </div>
-    
-    <style>
-    .peer-sync {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-        padding: 1rem;
-    }
-    
-    .sync-code {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-    
-    .connect-form {
-        display: flex;
-        gap: 0.5rem;
-    }
-    
-    code {
-        background: rgba(255, 255, 255, 0.1);
-        padding: 0.25rem 0.5rem;
-        border-radius: 4px;
-    }
-    
-    .loader {
-        border: 4px solid var(--secondary-color);
-        border-top: 4px solid var(--accent-color);
-        border-radius: 50%;
-        width: 40px;
-        height: 40px;
-        animation: spin 1s linear infinite;
-        margin: 20px auto;
-    }
-    
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-    </style>
-    
+    {/if}
+</div>
+
+<style>
+.peer-sync {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+}
+
+.connect-form {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.connect-form button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.loader {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.sync-code {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+}
+
+code {
+    background: var(--secondary-color);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    color: var(--text-color);
+    font-family: monospace;
+    font-size: 1.1em;
+}
+
+button {
+    transition: all 0.2s ease-in-out;
+}
+
+button:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+</style>
